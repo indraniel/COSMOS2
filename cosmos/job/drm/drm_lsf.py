@@ -1,6 +1,8 @@
 import subprocess as sp
+import sys
 import re
 import os
+import time
 
 from .DRM_Base import DRM
 
@@ -15,6 +17,12 @@ decode_lsf_state = dict([
     ('EXIT', 'job finished, but failed'),
 ])
 
+class BSubException(Exception):
+    pass
+
+class BSubJobNotFound(BSubException):
+    pass
+
 
 class DRM_LSF(DRM):
     name = 'lsf'
@@ -26,12 +34,12 @@ class DRM_LSF(DRM):
                                                           stderr=task.output_stderr_path,
                                                           ns=ns)
 
-        out = sp.check_output('{bsub} "{cmd_str}"'.format(cmd_str=self.jobmanager.get_command_str(task), bsub=bsub),
-                              env=os.environ,
-                              preexec_fn=preexec_function(),
-                              shell=True)
-
-        drm_jobID = int(re.search('Job <(\d+)>', out).group(1))
+        cmd = '{bsub} "{cmd_str}"'.format(cmd_str=task.output_command_script_path, bsub=bsub)
+        task.log.info("BSUB CMD: {}".format(cmd))
+        out = self._bsub(cmd)
+        drm_jobID = self._get_job_id(out)
+        task.log.info("BSUB JOB ID: {}".format(drm_jobID))
+        time.sleep(2)
         return drm_jobID
 
     def filter_is_done(self, tasks):
@@ -74,6 +82,33 @@ class DRM_LSF(DRM):
     def kill_tasks(self, tasks):
         for t in tasks:
             sp.check_call(['bkill', str(t.drm_jobID)])
+
+    def _bsub(self, command, check_str="is submitted"):
+        p = sp.Popen(command, shell=True,
+                              stdout=sp.PIPE,
+                              stderr=sp.PIPE,
+                              env=os.environ,
+                              preexec_fn=preexec_function())
+        p.wait()
+
+        res = p.stdout.read().strip().decode("utf-8", "replace")
+        err = p.stderr.read().strip().decode("utf-8", "replace")
+
+        if p.returncode == 255:
+            raise BSubJobNotFound(command)
+        elif p.returncode != 0:
+            if (res): sys.stderr.write(res)
+            if (err): sys.stderr.write(err)
+            raise BSubException(command + "[" + str(p.returncode) + "]")
+
+        if not (check_str in res and p.returncode == 0):
+            raise BSubException(res)
+        return res
+
+    def _get_job_id(self, result_string):
+        # parse the 'Job <(\d+)>' string
+        job_id = result_string.split("<", 1)[1].split(">", 1)[0]
+        return job_id
 
 
 def bjobs_all():
