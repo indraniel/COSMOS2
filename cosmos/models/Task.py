@@ -1,4 +1,5 @@
 import os
+import json
 import itertools as it
 import shutil
 import codecs
@@ -146,6 +147,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True)
     uid = Column(String(255), index=True)
 
+    drm_params = Column(String(1024), nullable=True, default=None)
     mem_req = Column(Integer, default=None)
     core_req = Column(Integer, default=1)
     cpu_req = synonym('core_req')
@@ -331,6 +333,13 @@ class Task(Base):
     @property
     def params_pformat(self):
         return pprint.pformat(self.params, indent=2, width=1)
+
+    @property
+    def drm_args(self):
+        params = None
+        if self.drm_params:
+            params = json.loads(self.drm_params)
+        return params
 
     def __repr__(self):
         return "<Task[%s] %s(uid='%s')>" % (self.id or 'id_%s' % id(self),

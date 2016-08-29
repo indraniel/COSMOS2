@@ -1,15 +1,25 @@
 import os
+import json
 import subprocess as sp
 from cosmos.api import Cosmos, Dependency, draw_stage_graph, draw_task_graph, \
     pygraphviz_available, default_get_submit_args
 from functools import partial
 from tools import echo, cat, word_count
 
+def to_str(args_dict):
+    return json.dumps(args_dict)
+
 
 def recipe(workflow):
     # Create two Tasks that echo "hello" and "world" respectively (source nodes of the dag).
     echo_tasks = [workflow.add_task(func=echo,
                                     params=dict(word=word, out_txt='%s.txt' % word),
+                                    drm_params=to_str({
+                                        'q' : 'short',
+                                        'M' : 4000000,
+                                        'u' : 'idas@genome.wustl.edu',
+                                        'N' : None,
+                                    }),
                                     uid=word)
                   for word in ['hello', 'world']]
 
@@ -23,6 +33,12 @@ def recipe(workflow):
                     params=dict(in_txts=[echo_task.params['out_txt']],
                                 out_txt='%s/%s/cat.txt' % (word, n)),
                     parents=[echo_task],
+                    drm_params=to_str({
+                        'q' : 'short',
+                        'M' : 4000000,
+                        'u' : 'idas@genome.wustl.edu',
+                        'N' : None,
+                    }),
                     uid='%s_%s' % (word, n))
 
             # Count the words in the previous stage.  An example of a simple one2one relationship
@@ -34,6 +50,12 @@ def recipe(workflow):
                                 out_txt='%s/%s/wc.txt' % (word, n),
                                 chars=True),
                     # parents=[cat_task], <-- not necessary!
+                    drm_params=to_str({
+                        'q' : 'short',
+                        'M' : 4000000,
+                        'u' : 'idas@genome.wustl.edu',
+                        'N' : None,
+                    }),
                     uid='%s_%s' % (word, n), )
             word_count_tasks.append(word_count_task)
 
@@ -45,6 +67,12 @@ def recipe(workflow):
                         out_txt='summary.txt'),
             parents=word_count_tasks,
             stage_name='Summary_Analysis',
+            drm_params=to_str({
+                'q' : 'short',
+                'M' : 4000000,
+                'u' : 'idas@genome.wustl.edu',
+                'N' : None,
+            }),
             uid='')  # It's the only Task in this Stage, so doesn't need a specific uid
 
 
