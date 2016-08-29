@@ -37,9 +37,15 @@ def default_get_submit_args(task, default_queue=None, parallel_env='orte'):
     priority = ' -p %s' % default_job_priority if default_job_priority else ''
 
     if drm in ['lsf', 'drmaa:lsf']:
-        rusage = '-R "rusage[mem={mem}] ' if mem_req and use_mem_req else ''
-        time = ' -W 0:{0}'.format(task.time_req) if task.time_req else ''
-        return '-R "{rusage}span[hosts=1]" -n {task.core_req}{time}{default_queue} -J "{jobname}"'.format(**locals())
+        if task.drm_params:
+            lsf_params = task.drm_args
+            lsf_params['J'] = jobname
+            bsub_param_string = _drm_kwargs_to_flag_string(lsf_params)
+            return bsub_param_string
+        else:
+            rusage = '-R "rusage[mem={mem}] ' if mem_req and use_mem_req else ''
+            time = ' -W 0:{0}'.format(task.time_req) if task.time_req else ''
+            return '-R "{rusage}span[hosts=1]" -n {task.core_req}{time}{default_queue} -J "{jobname}"'.format(**locals())
 
     elif drm in ['ge', 'drmaa:ge']:
         h_vmem = int(math.ceil(mem_req / float(core_req))) if mem_req else None
@@ -60,6 +66,16 @@ def default_get_submit_args(task, default_queue=None, parallel_env='orte'):
         return None
     else:
         raise Exception('DRM not supported: %s' % drm)
+
+def _drm_kwargs_to_flag_string(kwargs):
+    cmd_string = ""
+    for k, v in kwargs.items():
+        if isinstance(v, (float, int)):
+            pass
+        elif v and (v[0] not in "'\"") and any(tok in v for tok in "[="):
+                v = "\"%s\"" % v
+        cmd_string += " -" + k + ("" if v is None else (" " + str(v)))
+        return cmd_string
 
 
 class Cosmos(object):

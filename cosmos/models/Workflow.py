@@ -125,7 +125,7 @@ class Workflow(Base):
             if d != '':
                 sp.check_call(['mkdir', '-p', d])
 
-    def add_task(self, func, params=None, parents=None, stage_name=None, uid=None, drm=None):
+    def add_task(self, func, params=None, parents=None, stage_name=None, uid=None, drm=None, drm_params=None):
         """
         Adds a new Task to the Workflow.  If the Task already exists (and was successful), return the successful Task stored in the database
 
@@ -237,6 +237,7 @@ class Workflow(Base):
                         output_map=output_map,
                         uid=uid,
                         drm=drm or self.cosmos_app.default_drm,
+                        drm_params=drm_params,
                         core_req=params_or_signature_default_or('core_req', 1),
                         must_succeed=params_or_signature_default_or('must_succeed', True),
                         mem_req=params_or_signature_default_or('mem_req', None),
