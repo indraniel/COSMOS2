@@ -55,9 +55,19 @@ class DRM_LSF(DRM):
                 else:
                     return bjobs[jid]['STAT'] in ['DONE', 'EXIT', 'UNKWN', 'ZOMBI']
 
-            return filter(is_done, tasks)
+            def job_stats(task):
+                jid = str(task.drm_jobID)
+                status = bjobs[jid]['STAT']
+                successful = True if status == 'DONE' else False
+                noop = True if status == 'DONE' else False
+                stats = { '_status' : status, 'successful' : successful, 'NOOP' : noop }
+                return stats
+
+            done_tasks = filter(is_done, tasks)
+            done_stats = [ job_stats(t) for t in done_tasks ]
+            return zip(done_tasks, done_stats)
         else:
-            return []
+            return ([], {})
 
     def drm_statuses(self, tasks):
         """
@@ -121,9 +131,9 @@ def bjobs_all():
     except (sp.CalledProcessError, OSError):
         return {}
     bjobs = {}
-    header = re.split("\s\s+", lines[0])
+    header = re.split("\s+", lines[0])
     for l in lines[1:]:
-        items = re.split("\s\s+", l)
+        items = re.split("\s+", l)
         bjobs[items[0]] = dict(zip(header, items))
     return bjobs
 
