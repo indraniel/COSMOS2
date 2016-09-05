@@ -105,14 +105,14 @@ class DRM_LSF(DRM):
         err = p.stderr.read().strip().decode("utf-8", "replace")
 
         if p.returncode == 255:
-            raise BSubJobNotFound(command)
+            raise BSubJobNotFound("{} : {}".format(command, err))
         elif p.returncode != 0:
             if (res): sys.stderr.write(res)
             if (err): sys.stderr.write(err)
             raise BSubException(command + "[" + str(p.returncode) + "]")
 
         if not (check_str in res and p.returncode == 0):
-            raise BSubException(res)
+            raise BSubException(err)
         return res
 
     def _get_job_id(self, result_string):
