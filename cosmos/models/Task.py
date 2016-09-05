@@ -102,7 +102,7 @@ def task_status_changed(task):
 
 def logplus(filename):
     prefix, suffix = os.path.splitext(filename)
-    return property(lambda self: opj(self.log_dir, "{0}_attempt{1}{2}".format(prefix, self.attempt, suffix)))
+    return property(lambda self: opj(self.log_dir, "{0}-attempt-{1}{2}".format(prefix, self.attempt, suffix)))
 
 
 def readfile(path):
