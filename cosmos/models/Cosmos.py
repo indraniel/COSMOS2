@@ -72,10 +72,10 @@ def _drm_kwargs_to_flag_string(kwargs):
     for k, v in kwargs.items():
         if isinstance(v, (float, int)):
             pass
-        elif v and (v[0] not in "'\"") and any(tok in v for tok in "[="):
-                v = "\"%s\"" % v
+        elif v and (v[0] not in "'\"") and any(tok in v for tok in "([="):
+            v = "\"%s\"" % v
         cmd_string += " -" + k + ("" if v is None else (" " + str(v)))
-        return cmd_string
+    return cmd_string
 
 
 class Cosmos(object):
