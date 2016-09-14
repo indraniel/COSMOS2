@@ -262,11 +262,6 @@ class Task(Base):
     output_stderr_path = logplus('stderr.txt')
     output_stdout_path = logplus('stdout.txt')
 
-    def adjust_output_paths(self):
-        if 'lsf' in self.drm.lower():
-            Task.output_stderr_path = logplus('stderr-%J.txt')
-            Task.output_stdout_path = logplus('stdout-%J.txt')
-
     @property
     def stdout_text(self):
         return readfile(self.output_stdout_path).strip()

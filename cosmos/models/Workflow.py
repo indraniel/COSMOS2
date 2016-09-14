@@ -244,7 +244,6 @@ class Workflow(Base):
                         time_req=params_or_signature_default_or('time_req', None))
 
             task.cmd_fxn = func
-            task.adjust_output_paths()
             # task.input_map = input_map
             # task.output_map = output_map
             # task.call_kwargs = call_kwargs
