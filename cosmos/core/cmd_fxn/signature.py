@@ -32,7 +32,9 @@ import decorator
 def default_prepend(task):
     return '#!/bin/bash\n' \
            'set -e\n' \
-           'set -o pipefail\n' \
+           'set -o pipefail\n\n' \
+           '# display LSF job id if this is a scheduled dispatch job\n' \
+           'if [ ! -x ${LSB_JOBID+x} ]; then echo "LSF JOB ID: ${LSB_JOBID}"; fi \n' \
            '\n'
 
 # def default_cmd_append(task):
