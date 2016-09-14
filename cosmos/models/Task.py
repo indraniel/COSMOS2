@@ -4,6 +4,7 @@ import itertools as it
 import shutil
 import codecs
 import subprocess as sp
+import glob
 from sqlalchemy.orm import relationship, synonym, backref
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.schema import Column, ForeignKey, UniqueConstraint
@@ -267,13 +268,35 @@ class Task(Base):
             Task.output_stderr_path = logplus('stderr-%J.txt')
             Task.output_stdout_path = logplus('stdout-%J.txt')
 
+    def _get_stderr_file_name(self):
+        self.adjust_output_paths()
+        return self._get_exact_file_name(self.output_stderr_path)
+
+    def _get_stdout_file_name(self):
+        self.adjust_output_paths()
+        return self._get_exact_file_name(self.output_stdout_path)
+
+    def _get_exact_file_name(self, filepath):
+        if 'lsf' not in self.drm.lower():
+            return filepath
+
+        # handle lsf drm usage case
+        fpath_wildcard = filepath.replace('%J', '*')
+        fname = glob.glob(fpath_wildcard)
+        f = fname[0] if fname else filepath
+        return f
+
     @property
     def stdout_text(self):
-        return readfile(self.output_stdout_path).strip()
+        stdout_file = self._get_stdout_file_name()
+        self.log.info("reading file {}".format(stdout_file))
+        return readfile(stdout_file).strip()
 
     @property
     def stderr_text(self):
-        r = readfile(self.output_stderr_path).strip()
+        stderr_file = self._get_stderr_file_name()
+        self.log.info("reading file {}".format(stderr_file))
+        r = readfile(stderr_file).strip()
         if r == 'file does not exist':
             if self.drm == 'lsf' and self.drm_jobID:
                 r += '\n\nbpeek %s output:\n\n' % self.drm_jobID
