@@ -6,7 +6,6 @@ import signal
 import os
 import random
 import string
-import glob
 
 import time
 
@@ -29,10 +28,9 @@ def make_dict(*list_of_dicts, **additional_kwargs):
 
 
 def wait_for_file(workflow, path, timeout=60, error=True):
-    wildcard_path = path.replace('%J', '*')
     # Sometimes on a shared filesystem it can take a while for a file to propagate (i.e. eventual consistency)
     start = time.time()
-    while not glob.glob(wildcard_path):
+    while not os.path.exists(path):
         time.sleep(.1)
         if time.time() - start > timeout:
             if error:
