@@ -23,6 +23,9 @@ def find_all(path, reg_expr, inverse=False, remove_prefix=False):
                     out = out.replace(path, '')
                 yield out
 
+dependency_links = [
+    'https://github.com/indraniel/bmetrica/tarball/master#egg=bmetrica-0.0.1'
+]
 
 install_requires = [
     "decorator",
@@ -39,7 +42,8 @@ install_requires = [
     # "pyparsing==1.5.7",
     'psutil',
     "drmaa",
-    'more_itertools'
+    'more_itertools',
+    'bmetrica',
 ]
 
 if sys.version_info < (3,):
@@ -61,6 +65,7 @@ setup(
     maintainer="Erik Gafni",
     maintainer_email="egafni@gmail.com",
     license="MIT",
+    dependency_links=dependency_links,
     install_requires=install_requires,
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],

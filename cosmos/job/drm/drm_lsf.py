@@ -23,6 +23,8 @@ class BSubException(Exception):
 class BSubJobNotFound(BSubException):
     pass
 
+class BJobsNotFound(Exception):
+    pass
 
 class DRM_LSF(DRM):
     name = 'lsf'
@@ -46,12 +48,38 @@ class DRM_LSF(DRM):
         if len(tasks):
             bjobs = bjobs_all()
 
+            def _update_bjobs(jid, status):
+                if jid not in bjobs: bjobs[jid] = {}
+                bjobs[jid]['STAT'] = status
+
+            def _bmetrica_check(task, jid):
+                from bmetrica.jobstats import JobStats
+                js = JobStats()
+                metrics = js.get_metrics([jid])
+                if not metrics:
+                    msg = ("Could not find historical metrics "
+                           "for LSF job id: {}").format(jid)
+                    task.log.warning(msg)
+                    raise BJobsNotFound(msg)
+                status = metrics[0]['stat']
+                is_done = status in [ 'DONE', 'EXIT', 'UNKWN', 'ZOMBI' ]
+                return (is_done, status)
+
             def is_done(task):
                 jid = str(task.drm_jobID)
                 if jid not in bjobs:
                     # prob in history
                     # print 'missing %s %s' % (task, task.drm_jobID)
-                    return True
+                    if 'BMETRICA_DSN' in os.environ:
+                        task.log.info('No recent bjobs stats. Accessing bmetrica.')
+                        (is_done, status) = _bmetrica_check(task, jid)
+                        _update_bjobs(jid, status)
+                        return is_done
+                    else:
+                        msg = ("Found no status metrics "
+                               "for LSF job id: {}").format(jid)
+                        task.log.warning(msg)
+                        raise BJobsNotFound(msg)
                 else:
                     return bjobs[jid]['STAT'] in ['DONE', 'EXIT', 'UNKWN', 'ZOMBI']
 
@@ -77,8 +105,25 @@ class DRM_LSF(DRM):
         if len(tasks):
             bjobs = bjobs_all()
 
+            def _bmetrica(task):
+                jid = str(task.drm_jobID)
+
+                from bmetrica.jobstats import JobStats
+                js = JobStats()
+                metrics = js.get_metrics([jid])
+                if not metrics:
+                    msg = ("Could not find historical metrics "
+                           "for LSF job id: {}").format(jid)
+                    task.log.warning(msg)
+                    return '???'
+                status = metrics[0]['stat']
+                return status
+
             def f(task):
-                return bjobs.get(str(task.drm_jobID), dict()).get('STAT', '???')
+                status = bjobs.get(str(task.drm_jobID), dict()).get('STAT', '???')
+                if status == '???' and ('BMETRICA_DSN' in os.environ):
+                    status = _bmetrica(task)
+                return status
 
             return {task.drm_jobID: f(task) for task in tasks}
         else:
