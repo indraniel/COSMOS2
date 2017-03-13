@@ -71,7 +71,9 @@ class DRM_LSF(DRM):
                     # prob in history
                     # print 'missing %s %s' % (task, task.drm_jobID)
                     if 'BMETRICA_DSN' in os.environ:
-                        task.log.info('No recent bjobs stats. Accessing bmetrica.')
+                        msg = ('No recent bjobs stats for {}. '
+                               'Accessing bmetrica.').format(jid)
+                        task.log.info(msg)
                         (is_done, status) = _bmetrica_check(task, jid)
                         _update_bjobs(jid, status)
                         return is_done
