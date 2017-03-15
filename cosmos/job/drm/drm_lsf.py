@@ -63,6 +63,7 @@ class DRM_LSF(DRM):
                     raise BJobsNotFound(msg)
                 status = metrics[0]['stat']
                 is_done = status in [ 'DONE', 'EXIT', 'UNKWN', 'ZOMBI' ]
+                js.connection.close()
                 return (is_done, status)
 
             def is_done(task):
@@ -113,6 +114,7 @@ class DRM_LSF(DRM):
                 from bmetrica.jobstats import JobStats
                 js = JobStats()
                 metrics = js.get_metrics([jid])
+                js.connection.close()
                 if not metrics:
                     msg = ("Could not find historical metrics "
                            "for LSF job id: {}").format(jid)
