@@ -259,7 +259,8 @@ class Workflow(Base):
 
     def run(self, max_cores=None, max_attempts=1, dry=False, set_successful=True,
             cmd_wrapper=signature.default_cmd_fxn_wrapper,
-            log_out_dir_func=default_task_log_output_dir):
+            log_out_dir_func=default_task_log_output_dir,
+            db_task_flush=False):
         """
         Runs this Workflow's DAG
 
@@ -291,8 +292,8 @@ class Workflow(Base):
 
         if self.jobmanager is None:
             self.jobmanager = JobManager(get_submit_args=self.cosmos_app.get_submit_args,
-                                         cmd_wrapper=cmd_wrapper, log_out_dir_func=log_out_dir_func
-                                         )
+                                         cmd_wrapper=cmd_wrapper, log_out_dir_func=log_out_dir_func,
+                                         db_task_flush=db_task_flush)
 
         self.status = WorkflowStatus.running
         self.successful = False

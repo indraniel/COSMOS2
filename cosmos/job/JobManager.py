@@ -12,7 +12,7 @@ from operator import attrgetter
 from cosmos.models.Workflow import default_task_log_output_dir
 
 class JobManager(object):
-    def __init__(self, get_submit_args, log_out_dir_func=default_task_log_output_dir, cmd_wrapper=None):
+    def __init__(self, get_submit_args, log_out_dir_func=default_task_log_output_dir, cmd_wrapper=None, db_task_flush=False):
         self.drms = dict(local=DRM_Local(self))  # always support local workflow
         self.drms['lsf'] = DRM_LSF(self)
         self.drms['ge'] = DRM_GE(self)
@@ -23,6 +23,7 @@ class JobManager(object):
         self.get_submit_args = get_submit_args
         self.cmd_wrapper = cmd_wrapper
         self.log_out_dir_func = log_out_dir_func
+        self.db_task_flush = db_task_flush
 
     def get_drm(self, drm_name):
         """This allows support for drmaa:ge type syntax"""
@@ -61,6 +62,12 @@ class JobManager(object):
             task.drm_jobID = drm_jobID
 
         task.status = TaskStatus.submitted
+
+        # make database update ASAP
+        # (just in case things get borked midway through)
+        if self.db_task_flush:
+            task.log.info('dbflush enabled: updating database with submitted job information')
+            task.workflow.session.commit()
 
     def run_tasks(self, tasks):
         self.running_tasks += tasks
