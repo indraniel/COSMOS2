@@ -7,7 +7,7 @@ import itertools as it
 from ..util.args import get_last_cmd_executed
 from ..db import Base
 from .. import __version__
-from .. import WorkflowStatus
+from .. import WorkflowStatus, TaskStatus
 import math
 # from concurrent import futures
 from datetime import datetime
@@ -213,7 +213,10 @@ class Cosmos(object):
 
             wf.log.info('Resuming %s' % wf)
             session.add(wf)
+
+            self.update_prior_workflow_tasks(wf)
             failed_tasks = [t for s in wf.stages for t in s.tasks if not t.successful]
+
             n = len(failed_tasks)
             if n:
                 wf.log.info('Deleting %s unsuccessful task(s) from SQL database, delete_files=%s' % (n, False))
@@ -243,6 +246,16 @@ class Cosmos(object):
         wf.cosmos_app = self
 
         return wf
+
+    def update_prior_workflow_tasks(self, wf):
+        if (self.default_drm == 'lsf') and ('BMETRICA_DSN' in os.environ):
+            wf.log.info('assessing and updating prior submitted jobs')
+
+            from cosmos.job.drm.drm_lsf import update_task_from_historical_records
+            for s in wf.stages:
+                for t in s.tasks:
+                    if (t._status == TaskStatus.submitted) and (t.drm_jobID is not None):
+                        update_task_from_historical_records(t)
 
     def initdb(self):
         """

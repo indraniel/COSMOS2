@@ -4,6 +4,7 @@ import re
 import os
 import time
 
+from cosmos import TaskStatus
 from .DRM_Base import DRM
 
 decode_lsf_state = dict([
@@ -186,6 +187,39 @@ def bjobs_all():
         bjobs[items[0]] = dict(zip(header, items))
     return bjobs
 
+def update_task_from_historical_records(t):
+    if not ( (t._status == TaskStatus.submitted) and (t.drm_jobID is not None) ):
+        return
+
+    bjobs = bjobs_all()
+
+    from bmetrica.jobstats import JobStats
+    js = JobStats()
+
+    jid = str(t.drm_jobID)
+    t.log.info("inspecting earlier submitted job: {}".format(jid))
+    status = None
+    metrics = None
+
+    if jid in bjobs:
+        status = bjobs[jid]['STAT']
+    else:
+        historical_metrics = js.get_metrics([jid])
+        if historical_metrics:
+            metrics = historical_metrics[0]
+            status = metrics['stat']
+
+    if status == 'DONE':
+        t.log.info("LSF Job {}: successfully finished -- updating DB!".format(jid))
+        t._status = TaskStatus.successful
+        t.successful = True
+        if metrics:
+            t.submitted_on = metrics['submit_time']
+            t.started_on = metrics['start_time']
+            t.finished_on = metrics['end_time']
+        t.workflow.session.commit()
+
+    js.connection.close()
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
