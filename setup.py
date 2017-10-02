@@ -35,7 +35,7 @@ install_requires = [
     "sqlalchemy",
     "black_magic==0.0.10",  # to get a signature preserving partial() in cosmos.api
     'flask-sqlalchemy',
-    'networkx',
+    'networkx==1.11',
     "enum34",
     "six",
     "SQLAlchemy-Utils",
